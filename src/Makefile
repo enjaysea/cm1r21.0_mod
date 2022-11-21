@@ -8,10 +8,10 @@
 #              (NOTE: Don't change lines 3 and 4!)
 #  Note:  you may need to remove -DNCFPLUS if you use an old version of netcdf
 #
-#OUTPUTINC = -I$(NETCDF)/include
-#OUTPUTLIB = -L$(NETCDF)/lib
-#OUTPUTOPT = -DNETCDF -DNCFPLUS
-#LINKOPTS  = -lnetcdf -lnetcdff
+OUTPUTINC = -I$(NETCDF)/include
+OUTPUTLIB = -L$(NETCDF)/lib
+OUTPUTOPT = -DNETCDF -DNCFPLUS
+LINKOPTS  = -lnetcdf -lnetcdff
 #-----------------------------------------------------------------------------
 
 
@@ -82,10 +82,10 @@
 #DM = -DMPI
 #-----------------------------------------------------------------------------
 #  multiple processors, shared memory (OpenMP), GNU compiler
-#FC   = gfortran
-#OPTS = -ffree-form -ffree-line-length-none -O2 -finline-functions -fopenmp
-#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
-#OMP  = -DOPENMP
+FC   = gfortran
+OPTS = -ffree-form -ffree-line-length-none -O2 -finline-functions -fopenmp
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+OMP  = -DOPENMP
 #-----------------------------------------------------------------------------
 #  single processor, Cray fortran compiler
 #      (eg, NCSA's bluewaters)

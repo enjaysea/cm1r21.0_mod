@@ -1,0 +1,114 @@
+diff -w ./Makefile /mnt/f/cm1r21.0/src/Makefile
+11,16c11,14
+< OUTPUTINC = -I$(NETCDF)/include
+< OUTPUTLIB = -L$(NETCDF)/lib
+< FFTWINC = -I/usr/include
+< FFTWLIB = -L/usr/lib64
+< OUTPUTOPT = -DNETCDF -DNCFPLUS
+< LINKOPTS  = -lnetcdf -lnetcdff -lfftw3
+---
+> #OUTPUTINC = -I$(NETCDF)/include
+> #OUTPUTLIB = -L$(NETCDF)/lib
+> #OUTPUTOPT = -DNETCDF -DNCFPLUS
+> #LINKOPTS  = -lnetcdf -lnetcdff
+87,90c85,88
+< FC   = gfortran
+< OPTS = -ffree-form -ffree-line-length-none -O2 -finline-functions -fopenmp
+< CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+< OMP  = -DOPENMP
+---
+> #FC   = gfortran
+> #OPTS = -ffree-form -ffree-line-length-none -O2 -finline-functions -fopenmp
+> #CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+> #OMP  = -DOPENMP
+130d127
+< 	autotrans.F \
+220c217
+< 			$(FC) $(OBJS) $(FFLAGS) $(OUTPUTINC) $(FFTWINC) $(OUTPUTLIB) $(FFTWLIB) $(LINKOPTS) -o ../run/cm1.exe
+---
+> 			$(FC) $(OBJS) $(FFLAGS) $(OUTPUTINC) $(OUTPUTLIB) $(LINKOPTS) -o ../run/cm1.exe
+226c223
+< 			$(FC) $(FFLAGS) $(OUTPUTINC) $(FFTWINC) -c $*.f90
+---
+> 			$(FC) $(FFLAGS) $(OUTPUTINC) -c $*.f90
+240d236
+< autotrans.o: constants.o input.o misclibs.o
+290c286
+< solve3.o: constants.o input.o bc.o comm.o adv_routines.o misclibs.o parcel.o lsnudge.o autotrans.o
+---
+> solve3.o: constants.o input.o bc.o comm.o adv_routines.o misclibs.o parcel.o lsnudge.o
+Only in .: autotrans.F
+Only in .: cell.tracking.diff
+diff -w ./cm1.F /mnt/f/cm1r21.0/src/cm1.F
+258,263d257
+< 
+<       logical :: restarted_autotrans
+<       real, dimension(4,1) :: X_kal
+<       real, dimension(4,4) :: P_kal
+<       real :: umdt,vmdt
+< 
+3379c3373
+<                    xfref,yfref,rds,sigma,rdsf,sigmaf,                &
+---
+>                    rds,sigma,rdsf,sigmaf,                            &
+3413d3406
+<                    dat1,dat2,dat3,reqt,                              &
+3418,3419c3411
+<                    doazimwrite,dorestart,restarted_autotrans,X_kal,  &
+<                    P_kal,umdt,vmdt)
+---
+>                    doazimwrite,dorestart)
+Only in .: constants.s
+diff -w ./input.F /mnt/f/cm1r21.0/src/input.F
+98c98
+<               irandp,ibalance,iorigin,axisymm,imove,automove,iptra,npt,pdtra, &
+---
+>               irandp,ibalance,iorigin,axisymm,imove,iptra,npt,pdtra,          &
+266,267c266,267
+<           irandp,ibalance,iorigin,axisymm,imove,automove,iptra,npt,     &
+<           pdtra,iprcl,nparcels
+---
+>           irandp,ibalance,iorigin,axisymm,imove,iptra,npt,pdtra,        &
+>           iprcl,nparcels
+diff -w ./param.F /mnt/f/cm1r21.0/src/param.F
+359d358
+<       call MPI_BCAST(automove ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+2871d2869
+<       if(dowr) write(outfile,*) 'automove  =',automove
+diff -w ./solve3.F /mnt/f/cm1r21.0/src/solve3.F
+81c81
+<                    xfref,yfref,rds,sigma,rdsf,sigmaf,                &
+---
+>                    rds,sigma,rdsf,sigmaf,                            &
+115d114
+<                    dat1,dat2,dat3,reqt,                              &
+120,121c119
+<                    doazimwrite,dorestart,restarted_autotrans,X_kal,  &
+<                    P_kal,umdt,vmdt)
+---
+>                    doazimwrite,dorestart)
+131d128
+<       use autotrans_module
+149,150d145
+<       real, intent(in), dimension(1-ngxy:nx+ngxy+1) :: xfref
+<       real, intent(in), dimension(1-ngxy:ny+ngxy+1) :: yfref
+216,219d210
+<       real, intent(inout), dimension(d3i,d3j) :: dat1
+<       real, intent(inout), dimension(d2i,d2j) :: dat2
+<       real, intent(inout), dimension(d3i,d3j,d3n) :: dat3
+<       integer, intent(inout), dimension(d3t) :: reqt
+227,230d217
+<       logical, intent(inout) :: restarted_autotrans
+<       real, intent(inout), dimension(4,1) :: X_kal
+<       real, intent(inout), dimension(4,4) :: P_kal
+<       real, intent(inout) :: umdt,vmdt
+577,583c564
+<       IF( imove.eq.1 .and. automove.eq.1 ) THEN ! do every time step
+<         call autotrans(uf,vf,zh,zf,                           &
+<                        ug,vg,u0,ua,u3d,v0,va,v3d,wa,          &
+<                        dum2,dum5,dum6,zs,rgzu,rgzv,rds,sigma, &
+<                        rdsf,sigmaf,dat1,dat2,dat3,reqt,       &
+<                        xfref,yfref,dt,mtime,nstep,restarted_autotrans,X_kal,P_kal,umdt,vmdt)
+<       ENDIF
+---
+> 

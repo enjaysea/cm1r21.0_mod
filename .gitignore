@@ -1,5 +1,8 @@
 freezeH2O.dat
 p3_lookupTable_1.dat-3momI_v5.1.6
-*.o
+cm1_config.txt
+fftw-3.3.10
 *.mod
+*.o
 *.f90
+cm1out*

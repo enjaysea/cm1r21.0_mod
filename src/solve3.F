@@ -118,7 +118,9 @@
                    dowriteout,dorad,getdbz,getvt,dotdwrite,          &
                    dotbud,doqbud,doubud,dovbud,dowbud,donudge,       &
                    doazimwrite,dorestart,restarted_autotrans,X_kal,  &
-                   P_kal,umdt,vmdt)
+                   P_kal,umdt,vmdt,                                  &
+                   myi1p,myi2p,myj1p,myj2p)
+
         ! end_solve3
       use input
       use constants
@@ -228,6 +230,7 @@
       real, intent(inout), dimension(4,1) :: X_kal
       real, intent(inout), dimension(4,4) :: P_kal
       real, intent(inout) :: umdt,vmdt
+      integer, intent(in), dimension(numprocs) :: myi1p,myi2p,myj1p,myj2p
 
 !-----------------------------------------------------------------------
 ! Arrays and variables defined inside solve
@@ -579,7 +582,9 @@
                        ug,vg,u0,ua,u3d,v0,va,v3d,wa,          &
                        dum2,dum5,dum6,zs,rgzu,rgzv,rds,sigma, &
                        rdsf,sigmaf,dat1,dat2,dat3,reqt,       &
-                       xfref,yfref,dt,mtime,nstep,restarted_autotrans,X_kal,P_kal,umdt,vmdt)
+                       xfref,yfref,dt,mtime,nstep,restarted_autotrans,X_kal,P_kal,umdt,vmdt, &
+                       myi1p,myi2p,myj1p,myj2p)
+
       ENDIF
       !$omp parallel do default(shared)  &
       !$omp private(i,j,k)

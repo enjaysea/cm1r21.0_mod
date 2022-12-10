@@ -3416,7 +3416,8 @@
                    dowriteout,dorad,getdbz,getvt,dotdwrite,          &
                    dotbud,doqbud,doubud,dovbud,dowbud,donudge,       &
                    doazimwrite,dorestart,restarted_autotrans,X_kal,  &
-                   P_kal,umdt,vmdt)
+                   P_kal,umdt,vmdt,                                  &
+                   myi1p,myi2p,myj1p,myj2p)
         ! end_solve3
 
 

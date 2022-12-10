@@ -430,7 +430,8 @@ CONTAINS
                        ug,vg,u0,ua,u3d,v0,va,v3d,wa, &
                        dum2,dum5,dum6,zs,rgzu,rgzv,rds,sigma, &
                        rdsf,sigmaf,dat1,dat2,dat3,reqt, &
-                       xfref,yfref,dt,mtime,nstep,restarted_autotrans,X_kal,P_kal,umdt,vmdt)
+                       xfref,yfref,dt,mtime,nstep,restarted_autotrans,X_kal,P_kal,umdt,vmdt, &
+                       myi1p,myi2p,myj1p,myj2p)
 
   use misclibs
   use input
@@ -471,6 +472,7 @@ CONTAINS
   integer, intent(in) :: nstep
   logical, intent(inout) :: restarted_autotrans
   integer :: i,j,k
+  integer, intent(in), dimension(numprocs) :: myi1p,myi2p,myj1p,myj2p
 
   real, dimension(ib:ie,jb:je) :: uhel
   real, allocatable :: flat(:)
@@ -595,7 +597,7 @@ CONTAINS
   call calcuh(uf,vf,zh,zf,ua,va,wa,uhel,dum2,dum5,dum6, &
               zs,rgzu,rgzv,rds,sigma,rdsf,sigmaf)
 
-  call gather(uhel(ib,jb),dat1(1,1),dat2(1,1),dat3(1,1,0),reqt)
+  call gather(uhel(ib,jb),dat1(1,1),dat2(1,1),dat3(1,1,0),reqt,myi1p,myi2p,myj1p,myj2p)
 
   if( myid.eq.0)then
 
@@ -817,168 +819,155 @@ call MPI_BCAST(missing_obs,1,MPI_REAL,0,MPI_COMM_WORLD,ierr)! send observations 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-  subroutine gather(var,dat1,dat2,dat3,reqt)
-  use input
+    subroutine gather(var,dat1,dat2,dat3,reqt,myi1p,myi2p,myj1p,myj2p)
+    use input
 #ifdef MPI
-  use mpi
+    use mpi
 #endif
-  implicit none
+    implicit none
 
-  real, intent(in), dimension(ib:ie,jb:je) :: var
-  real, intent(inout), dimension(ni,nj) :: dat1
-  real, intent(inout), dimension(nx,ny) :: dat2
-  real, intent(inout), dimension(ni,nj,0:d3n-1) :: dat3
-  integer, intent(inout), dimension(d3t) :: reqt
+    real, intent(in), dimension(ib:ie,jb:je) :: var
+    real, intent(inout), dimension(d3is,d3js) :: dat1
+    real, intent(inout), dimension(d2is,d2js) :: dat2
+    real, intent(inout), dimension(d3is,d3js,0:d3n-1) :: dat3
+    integer, intent(inout), dimension(d3t) :: reqt
+    integer, intent(in), dimension(numprocs) :: myi1p,myi2p,myj1p,myj2p
 
-  !----
+    !----
 
-  integer :: i,j
+    integer :: i,j
 #ifdef MPI
-  integer :: fooi,fooj,nn,nnn,n1,n2,ntot,index2
-  integer :: index,tag,proc,reqs,msk
+    integer :: fooi,fooj,nn,nnn,n1,n2,ntot,index2,nitmp,njtmp
+    integer :: index,tag,proc,reqs
+    integer, dimension(mpi_status_size,ppnode-1) :: status1
 #endif
 
-  !-------------------------------------------------------------------
-  ! This subroutine collects data (from other processors if this is a
-  ! MPI run)
-  !-------------------------------------------------------------------
+    !-------------------------------------------------------------------
+    ! This subroutine collects data (from other processors if this is a
+    ! MPI run) 
+    !-------------------------------------------------------------------
 
 #ifdef MPI
-  msk = 0
-  tag = 1111
+    tag = 1111
 #endif
 
 #ifndef MPI
-    !-------------------- non-MPI section --------------------!
-!$omp parallel do default(shared)   &
-!$omp private(i,j)
-    do j=1,nj
-    do i=1,ni
-      dat2(i,j)=var(i,j)
-    enddo
-    enddo
-#else
-    !-------------------- MPI section --------------------!
-
-    IF(myid.ne.nodemaster)THEN
-      ! ordinary processor ... send data to nodemaster:
+      !-------------------- non-MPI section --------------------!
 !$omp parallel do default(shared)   &
 !$omp private(i,j)
       do j=1,nj
       do i=1,ni
-        dat1(i,j)=var(i,j)
+        dat2(i,j)=var(i,j)
       enddo
       enddo
-      call MPI_ISEND(dat1(1,1),ni*nj,MPI_REAL,nodemaster,tag,MPI_COMM_WORLD,reqs,ierr)
-      call MPI_WAIT(reqs,MPI_STATUS_IGNORE,ierr)
-      ! DONE, ordinary processors
-    ELSE
-      ! begin nodemaster section:
-        ! start receives from all other processors on a node:
-        do proc=myid+1,myid+(ppnode-1)
-          call MPI_IRECV(dat3(1,1,proc),ni*nj,MPI_REAL,proc,tag,MPI_COMM_WORLD,reqt(proc-myid),ierr)
-        enddo
-      IF(myid.ne.msk)THEN
-        ! nodemaster, not proc msk:
-!$omp parallel do default(shared)  &
+#else
+      !-------------------- MPI section --------------------!
+
+      IF(myid.ne.nodeleader)THEN
+        ! ordinary processor ... send data to nodeleader:
+!$omp parallel do default(shared)   &
 !$omp private(i,j)
         do j=1,nj
         do i=1,ni
-          dat3(i,j,myid)=var(i,j)
+          dat1(i,j)=var(i,j)
         enddo
         enddo
-        ! wait for receives to finish:
-        call mpi_waitall(ppnode-1,reqt(1:ppnode-1),MPI_STATUSES_IGNORE,ierr)
-        ! send data to processor msk:
-        call MPI_ISEND(dat3(1,1,myid),ni*nj*ppnode,MPI_REAL,msk,tag+1,MPI_COMM_WORLD,reqs,ierr)
-        ! wait for send to finish:
+        call MPI_ISEND(dat1(1,1),d3is*d3js,MPI_REAL,nodeleader,tag,MPI_COMM_WORLD,reqs,ierr)
         call MPI_WAIT(reqs,MPI_STATUS_IGNORE,ierr)
-        ! DONE, nodemaster (not proc msk)
+        ! DONE, ordinary processors
       ELSE
-        ! proc msk:
-          ! start receives from other nodemasters:
-          do nn = 1,(nodes-1)
-            if( nn.le.mynode )then
-              proc = (nn-1)*ppnode
-            else
-              proc = nn*ppnode
-            endif
-            call MPI_IRECV(dat3(1,1,proc),ni*nj*ppnode,MPI_REAL,proc,tag+1,MPI_COMM_WORLD,reqt(ppnode-1+nn),ierr)
+        ! begin nodeleader section:
+          ! start receives from all other processors on a node:
+          do proc=myid+1,myid+(ppnode-1)
+            call MPI_IRECV(dat3(1,1,proc),d3is*d3js,MPI_REAL,proc,tag,MPI_COMM_WORLD,reqt(proc-myid),ierr)
           enddo
-        ! my data:
-        if( myid.eq.0 )then
+        IF(myid.ne.0)THEN
+          ! nodeleader, not proc 0:
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
           do j=1,nj
           do i=1,ni
-            dat2(i,j)=var(i,j)
+            dat3(i,j,myid)=var(i,j)
           enddo
           enddo
-        else
-          fooj = myid / nodex + 1
-          fooi = myid - (fooj-1)*nodex  + 1
-          fooi = (fooi-1)*ni
-          fooj = (fooj-1)*nj
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
-          do j=1,nj
-          do i=1,ni
-            dat2(fooi+i,fooj+j)=var(i,j)
-          enddo
-          enddo
-        endif
-        ! wait for data to arrive:
-        ntot = ppnode-1 + nodes-1
-        do nn=1,ntot
-          call mpi_waitany(ntot,reqt(1:ntot),index,MPI_STATUS_IGNORE,ierr)
-          if( index.le.(ppnode-1) )then
-            ! data from ordinary procs on node:
-            proc = myid+index
-            fooj = proc / nodex + 1
-            fooi = proc - (fooj-1)*nodex  + 1
-            fooi = (fooi-1)*ni
-            fooj = (fooj-1)*nj
+          ! wait for receives to finish:
+          call mpi_waitall(ppnode-1,reqt(1:ppnode-1),status1,ierr)
+          ! send data to processor 0:
+          call MPI_ISEND(dat3(1,1,myid),d3is*d3js*ppnode,MPI_REAL,0,tag+1,MPI_COMM_WORLD,reqs,ierr)
+          ! wait for send to finish:
+          call MPI_WAIT(reqs,MPI_STATUS_IGNORE,ierr)
+          ! DONE, nodeleader (not proc 0)
+        ELSE
+          ! proc 0:
+            ! start receives from other nodeleaders:
+            do nn = 1,(nodes-1)
+              if( nn.le.mynode )then
+                proc = (nn-1)*ppnode
+              else
+                proc = nn*ppnode
+              endif
+              call MPI_IRECV(dat3(1,1,proc),d3is*d3js*ppnode,MPI_REAL,proc,tag+1,MPI_COMM_WORLD,reqt(ppnode-1+nn),ierr)
+            enddo
+          ! my data:
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
             do j=1,nj
             do i=1,ni
-              dat2(fooi+i,fooj+j) = dat3(i,j,proc)
+              dat2(i,j)=var(i,j)
             enddo
             enddo
-          else
-            ! data from other nodemasters:
-            index2 = index-(ppnode-1)
-            if( index2.le.mynode )then
-              index2 = index2-1
-            endif
-            n1 = index2*ppnode
-            n2 = (index2+1)*ppnode-1
-            do nnn = n1,n2
-              proc = nnn
-              fooj = proc / nodex + 1
-              fooi = proc - (fooj-1)*nodex  + 1
-              fooi = (fooi-1)*ni
-              fooj = (fooj-1)*nj
+          ! wait for data to arrive:
+          ntot = ppnode-1 + nodes-1 
+          do nn=1,ntot
+            call mpi_waitany(ntot,reqt(1:ntot),index,MPI_STATUS_IGNORE,ierr)
+            if( index.le.(ppnode-1) )then
+              ! data from ordinary procs on node:
+              proc = myid+index
+              fooi = myi1p(proc+1)-1
+              fooj = myj1p(proc+1)-1
+              nitmp = myi2p(proc+1)-myi1p(proc+1)+1
+              njtmp = myj2p(proc+1)-myj1p(proc+1)+1
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
-              do j=1,nj
-              do i=1,ni
+              do j=1,njtmp
+              do i=1,nitmp
                 dat2(fooi+i,fooj+j) = dat3(i,j,proc)
               enddo
               enddo
-            enddo
-          endif
-        enddo
-        ! DONE, proc 0
+            else
+              ! data from other nodeleaders:
+              index2 = index-(ppnode-1)
+              if( index2.le.mynode )then
+                index2 = index2-1
+              endif
+              n1 = index2*ppnode
+              n2 = (index2+1)*ppnode-1
+              do nnn = n1,n2
+                proc = nnn
+                fooi = myi1p(proc+1)-1
+                fooj = myj1p(proc+1)-1
+                nitmp = myi2p(proc+1)-myi1p(proc+1)+1
+                njtmp = myj2p(proc+1)-myj1p(proc+1)+1
+!$omp parallel do default(shared)  &
+!$omp private(i,j)
+                do j=1,njtmp
+                do i=1,nitmp
+                  dat2(fooi+i,fooj+j) = dat3(i,j,proc)
+                enddo
+                enddo
+              enddo
+            endif
+          enddo
+          ! DONE, proc 0
+        ENDIF
+        !-------------------- end MPI section --------------------!
       ENDIF
-      !-------------------- end MPI section --------------------!
-    ENDIF
-    ! seems to help with memory:
-    call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+      ! seems to help with memory:
+      call MPI_BARRIER (MPI_COMM_WORLD,ierr)
 #endif
 
 
-    end subroutine gather
+      end subroutine gather
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

@@ -77,16 +77,16 @@ LINKOPTS  = -lnetcdf -lnetcdff -lfftw3
 #CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #-----------------------------------------------------------------------------
 #  multiple processors, distributed memory (MPI), GNU compiler
-#FC = mpif90
-#OPTS = -ffree-form -ffree-line-length-none -O2 -finline-functions
-#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
-#3DM = -DMPI
+FC = mpif90
+OPTS = -ffree-form -ffree-line-length-none -O2 -finline-functions
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+3DM = -DMPI
 #-----------------------------------------------------------------------------
 #  multiple processors, shared memory (OpenMP), GNU compiler
-FC   = gfortran
-OPTS = -ffree-form -ffree-line-length-none -O2 -finline-functions -fopenmp
-CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
-OMP  = -DOPENMP
+#FC   = gfortran
+#OPTS = -ffree-form -ffree-line-length-none -O2 -finline-functions -fopenmp
+#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+#OMP  = -DOPENMP
 #-----------------------------------------------------------------------------
 #  single processor, Cray fortran compiler
 #      (eg, NCSA's bluewaters)

@@ -80,7 +80,7 @@ LINKOPTS  = -lnetcdf -lnetcdff -lfftw3
 FC = mpif90
 OPTS = -ffree-form -ffree-line-length-none -O2 -finline-functions
 CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
-3DM = -DMPI
+DM = -DMPI
 #-----------------------------------------------------------------------------
 #  multiple processors, shared memory (OpenMP), GNU compiler
 #FC   = gfortran

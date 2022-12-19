@@ -1,7 +1,4 @@
-onefile.F
 *.mod
-*.o
 *.f90
+*.o
 *.exe
-cm1_config.txt
-cm1out*
